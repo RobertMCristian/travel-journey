@@ -1,0 +1,201 @@
+openapi: 3.0.3
+
+info:
+  title: Travel Journal
+  description: REST API for managing users
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: local
+
+tags:
+  - name: users
+    description: user management endpoints
+  - name: auth
+    description: auth endpoints
+
+paths:
+  /users:
+    get:
+      tags:
+        - users
+      summary: returns all users
+      responses:
+        '200':
+          description: list of all users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserResponse'
+
+    post:
+      tags:
+        - users
+      summary: create new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: successfully created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '409':
+          description: email already in use
+
+  /users/{id}:
+    get:
+      tags:
+        - users
+      summary: returns user by id
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: user found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: user not found
+
+    put:
+      tags:
+        - users
+      summary: update user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: user updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: user not found
+
+    delete:
+      tags:
+        - users
+      summary: delete user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: user deleted
+        '404':
+          description: user not found
+
+  /login:
+    post:
+      tags:
+        - auth
+      summary: user login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: invalid credentials
+
+components:
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+          format: email
+      required:
+        - id
+        - name
+        - surname
+        - email
+
+    CreateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - name
+        - surname
+        - email
+        - password
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        surname:
+          type: string
+      required:
+        - name
+        - surname
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
