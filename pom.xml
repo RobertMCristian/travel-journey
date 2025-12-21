@@ -81,6 +81,17 @@
             <artifactId>spring-boot-starter-webmvc-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+            <version>2.2.22</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openapitools</groupId>
+            <artifactId>jackson-databind-nullable</artifactId>
+            <version>0.2.6</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -136,6 +147,7 @@
                                 <interfaceOnly>true</interfaceOnly>
                                 <useTags>true</useTags>
                                 <skipDefaultInterface>true</skipDefaultInterface>
+                                <useJakartaEe>true</useJakartaEe>
                             </configOptions>
                         </configuration>
                     </execution>
