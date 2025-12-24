@@ -1,39 +1,28 @@
 package com.example.traveljournal.controller;
 
 import com.example.traveljournal.api.UsersApi;
-import com.example.traveljournal.model.CreateUserRequest;
 import com.example.traveljournal.model.UpdateUserRequest;
 import com.example.traveljournal.model.UserResponse;
+import com.example.traveljournal.services.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.util.List;
 
 @RestController
 public class UsersController implements UsersApi {
 
-    @Override
-    public ResponseEntity<List<UserResponse>> usersGet() {
-        return ResponseEntity.ok(List.of());
-    }
+    private final UserService userService;
 
-    @Override
-    public ResponseEntity<Void> usersIdDelete(Long id) {
-        return null;
+    public UsersController(UserService userService) {
+        this.userService = userService;
     }
 
     @Override
     public ResponseEntity<UserResponse> usersIdGet(Long id) {
-        return null;
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @Override
-    public ResponseEntity<UserResponse> usersIdPut(Long id, UpdateUserRequest updateUserRequest) {
-        return null;
-    }
-
-    @Override
-    public ResponseEntity<UserResponse> usersPost(CreateUserRequest createUserRequest) {
-        return null;
+    public ResponseEntity<UserResponse> usersIdPatch(Long id, UpdateUserRequest updateUserRequest) {
+        return ResponseEntity.ok(userService.updateUser(id, updateUserRequest));
     }
 }

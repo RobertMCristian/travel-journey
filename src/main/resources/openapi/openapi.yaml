@@ -2,7 +2,7 @@ openapi: 3.0.3
 
 info:
   title: Travel Journal
-  description: REST API for managing users
+  description: REST API for Travel Journal (users, auth, journals, entries)
   version: 1.0.0
 
 servers:
@@ -10,59 +10,64 @@ servers:
     description: local
 
 tags:
-  - name: users
-    description: user management endpoints
   - name: auth
     description: auth endpoints
+  - name: users
+    description: user management endpoints
+  - name: journals
+    description: journals endpoints
+  - name: entries
+    description: journal entries endpoints
+  - name: dashboard
+    description: aggregated endpoints
 
 paths:
-  /users:
-    get:
-      tags:
-        - users
-      summary: returns all users
-      responses:
-        '200':
-          description: list of all users
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/UserResponse'
-
+  /auth/register:
     post:
-      tags:
-        - users
-      summary: create new user
+      tags: [auth]
+      summary: register new user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateUserRequest'
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: successfully created user
+          description: successfully registered user
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
+                $ref: '#/components/schemas/AuthResponse'
         '409':
           description: email already in use
 
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: user login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: invalid credentials
+
   /users/{id}:
     get:
-      tags:
-        - users
-      summary: returns user by id
+      tags: [users]
+      summary: get user by id
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
+        - $ref: '#/components/parameters/UserId'
       responses:
         '200':
           description: user found
@@ -73,17 +78,11 @@ paths:
         '404':
           description: user not found
 
-    put:
-      tags:
-        - users
-      summary: update user
+    patch:
+      tags: [users]
+      summary: update user partially
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
+        - $ref: '#/components/parameters/UserId'
       requestBody:
         required: true
         content:
@@ -100,45 +99,226 @@ paths:
         '404':
           description: user not found
 
-    delete:
-      tags:
-        - users
-      summary: delete user
+  /users/{id}/dashboard:
+    get:
+      tags: [dashboard]
+      summary: aggregated dashboard for a user (journals + entries)
       parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
+        - $ref: '#/components/parameters/UserId'
       responses:
-        '204':
-          description: user deleted
+        '200':
+          description: dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDashboardResponse'
         '404':
           description: user not found
 
-  /login:
+  /journals:
     post:
-      tags:
-        - auth
-      summary: user login
+      tags: [journals]
+      summary: create journal
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/LoginRequest'
+              $ref: '#/components/schemas/CreateJournalRequest'
       responses:
-        '200':
-          description: login successful
+        '201':
+          description: journal created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserResponse'
-        '401':
-          description: invalid credentials
+                $ref: '#/components/schemas/JournalResponse'
+        '400':
+          description: invalid request
+
+    get:
+      tags: [journals]
+      summary: list journals (optionally filtered by ownerId)
+      parameters:
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: list of journals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/JournalResponse'
+
+  /journals/{journalId}:
+    get:
+      tags: [journals]
+      summary: get journal by id
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      responses:
+        '200':
+          description: journal found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalResponse'
+        '404':
+          description: journal not found
+
+    patch:
+      tags: [journals]
+      summary: update journal partially
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateJournalRequest'
+      responses:
+        '200':
+          description: journal updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalResponse'
+        '404':
+          description: journal not found
+
+    delete:
+      tags: [journals]
+      summary: delete journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      responses:
+        '204':
+          description: journal deleted
+        '404':
+          description: journal not found
+
+  /journals/{journalId}/entries:
+    post:
+      tags: [entries]
+      summary: create journal entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEntryRequest'
+      responses:
+        '201':
+          description: entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryResponse'
+        '404':
+          description: journal not found
+
+    get:
+      tags: [entries]
+      summary: list entries for a journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      responses:
+        '200':
+          description: list of entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntryResponse'
+        '404':
+          description: journal not found
+
+  /journals/{journalId}/entries/{entryId}:
+    get:
+      tags: [entries]
+      summary: get entry by id
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: entry found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryResponse'
+        '404':
+          description: journal or entry not found
+
+    patch:
+      tags: [entries]
+      summary: update entry partially
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEntryRequest'
+      responses:
+        '200':
+          description: entry updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntryResponse'
+        '404':
+          description: journal or entry not found
+
+    delete:
+      tags: [entries]
+      summary: delete entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '204':
+          description: entry deleted
+        '404':
+          description: journal or entry not found
 
 components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    JournalId:
+      name: journalId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    EntryId:
+      name: entryId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
   schemas:
     UserResponse:
       type: object
@@ -153,40 +333,34 @@ components:
         email:
           type: string
           format: email
-      required:
-        - id
-        - name
-        - surname
-        - email
+      required: [id, name, surname, email]
 
-    CreateUserRequest:
+    RegisterRequest:
       type: object
       properties:
         name:
           type: string
+          minLength: 1
         surname:
           type: string
+          minLength: 1
         email:
           type: string
           format: email
         password:
           type: string
-      required:
-        - name
-        - surname
-        - email
-        - password
+          minLength: 6
+      required: [name, surname, email, password]
 
     UpdateUserRequest:
       type: object
       properties:
         name:
           type: string
+          minLength: 1
         surname:
           type: string
-      required:
-        - name
-        - surname
+          minLength: 1
 
     LoginRequest:
       type: object
@@ -196,6 +370,147 @@ components:
           format: email
         password:
           type: string
-      required:
-        - email
-        - password
+          minLength: 1
+      required: [email, password]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserResponse'
+      required: [token, user]
+
+    JournalResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        ownerId:
+          type: integer
+          format: int64
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        startDate:
+          type: string
+          format: date
+          nullable: true
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, ownerId, title, createdAt]
+
+    CreateJournalRequest:
+      type: object
+      properties:
+        ownerId:
+          type: integer
+          format: int64
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+      required: [ownerId, title]
+
+    UpdateJournalRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+
+    EntryResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        journalId:
+          type: integer
+          format: int64
+        entryDate:
+          type: string
+          format: date
+        title:
+          type: string
+        content:
+          type: string
+        mood:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, journalId, entryDate, title, content, createdAt]
+
+    CreateEntryRequest:
+      type: object
+      properties:
+        entryDate:
+          type: string
+          format: date
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        mood:
+          type: string
+      required: [entryDate, title, content]
+
+    UpdateEntryRequest:
+      type: object
+      properties:
+        entryDate:
+          type: string
+          format: date
+        title:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        mood:
+          type: string
+
+    UserDashboardResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        journalsCount:
+          type: integer
+          format: int32
+        entriesCount:
+          type: integer
+          format: int32
+        lastEntryDate:
+          type: string
+          format: date
+          nullable: true
+      required: [user, journalsCount, entriesCount]
