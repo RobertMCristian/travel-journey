@@ -5,6 +5,7 @@ import com.example.traveljournal.model.AuthResponse;
 import com.example.traveljournal.model.LoginRequest;
 import com.example.traveljournal.model.RegisterRequest;
 import com.example.traveljournal.services.AuthService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -18,13 +19,13 @@ public class AuthController implements AuthApi {
     }
 
     @Override
-    public ResponseEntity<AuthResponse> authRegisterPost(RegisterRequest registerRequest) {
+    public ResponseEntity<AuthResponse> authRegisterPost(@Valid RegisterRequest registerRequest) {
         AuthResponse response = authService.register(registerRequest);
         return ResponseEntity.status(201).body(response);
     }
 
     @Override
-    public ResponseEntity<AuthResponse> authLoginPost(LoginRequest loginRequest) {
+    public ResponseEntity<AuthResponse> authLoginPost(@Valid LoginRequest loginRequest) {
         AuthResponse response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
     }

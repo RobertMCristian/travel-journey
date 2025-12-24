@@ -7,18 +7,24 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users")
 public class UserEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     @Column(nullable = false)
     private String name;
+
     @Column(nullable = false)
     private String surname;
+
     @Column(unique = true, nullable = false)
     private String email;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
-    @Column(name = "created_at", updatable = false)
+
+    @Column(name = "created_at", updatable = false, insertable = false)
     private LocalDateTime createdAt;
 
     public UserEntity() {

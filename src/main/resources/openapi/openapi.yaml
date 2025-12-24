@@ -18,14 +18,30 @@ tags:
     description: journals endpoints
   - name: entries
     description: journal entries endpoints
+  - name: locations
+    description: entry location endpoints
+  - name: tags
+    description: tags endpoints
+  - name: collaboration
+    description: journal collaboration endpoints
+  - name: expenses
+    description: expenses endpoints
+  - name: notifications
+    description: notifications endpoints
+  - name: search
+    description: search endpoints
   - name: dashboard
     description: aggregated endpoints
+
+security:
+  - bearerAuth: []
 
 paths:
   /auth/register:
     post:
       tags: [auth]
       summary: register new user
+      security: []
       requestBody:
         required: true
         content:
@@ -46,6 +62,7 @@ paths:
     post:
       tags: [auth]
       summary: user login
+      security: []
       requestBody:
         required: true
         content:
@@ -102,7 +119,7 @@ paths:
   /users/{id}/dashboard:
     get:
       tags: [dashboard]
-      summary: aggregated dashboard for a user (journals + entries)
+      summary: aggregated dashboard for a user (journals + entries + expenses)
       parameters:
         - $ref: '#/components/parameters/UserId'
       responses:
@@ -137,9 +154,15 @@ paths:
 
     get:
       tags: [journals]
-      summary: list journals (optionally filtered by ownerId)
+      summary: list journals (optionally filtered by ownerId or collaboratorId)
       parameters:
         - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: collaboratorId
           in: query
           required: false
           schema:
@@ -293,7 +316,449 @@ paths:
         '404':
           description: journal or entry not found
 
+#locations 1:1 entry
+  /journals/{journalId}/entries/{entryId}/location:
+    put:
+      tags: [locations]
+      summary: upsert location for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpsertLocationRequest'
+      responses:
+        '200':
+          description: location saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '404':
+          description: journal or entry not found
+
+    get:
+      tags: [locations]
+      summary: get location for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '404':
+          description: journal or entry not found
+
+    delete:
+      tags: [locations]
+      summary: delete location for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: journal or entry not found
+
+#tags
+  /tags:
+    post:
+      tags: [tags]
+      summary: create tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTagRequest'
+      responses:
+        '201':
+          description: tag created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagResponse'
+        '409':
+          description: tag already exists
+
+    get:
+      tags: [tags]
+      summary: list tags (optional name filter)
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: list of tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+
+  /tags/{tagId}:
+    delete:
+      tags: [tags]
+      summary: delete tag
+      parameters:
+        - $ref: '#/components/parameters/TagId'
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: tag not found
+
+  /journals/{journalId}/entries/{entryId}/tags:
+    put:
+      tags: [tags]
+      summary: replace all tags for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReplaceEntryTagsRequest'
+      responses:
+        '200':
+          description: updated tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+        '404':
+          description: journal or entry not found
+
+    get:
+      tags: [tags]
+      summary: list tags for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: tags
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+        '404':
+          description: journal or entry not found
+
+#collab
+  /journals/{journalId}/collaborators:
+    post:
+      tags: [collaboration]
+      summary: add collaborator to a journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCollaboratorRequest'
+      responses:
+        '201':
+          description: collaborator added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollaboratorResponse'
+        '404':
+          description: journal or user not found
+        '409':
+          description: collaborator already exists
+
+    get:
+      tags: [collaboration]
+      summary: list collaborators for a journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      responses:
+        '200':
+          description: collaborators
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CollaboratorResponse'
+        '404':
+          description: journal not found
+
+  /journals/{journalId}/collaborators/{userId}:
+    patch:
+      tags: [collaboration]
+      summary: update collaborator role
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCollaboratorRequest'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CollaboratorResponse'
+        '404':
+          description: journal or collaborator not found
+
+    delete:
+      tags: [collaboration]
+      summary: remove collaborator from a journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '204':
+          description: removed
+        '404':
+          description: journal or collaborator not found
+
+#expenses per entry
+  /journals/{journalId}/entries/{entryId}/expenses:
+    post:
+      tags: [expenses]
+      summary: create expense for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateExpenseRequest'
+      responses:
+        '201':
+          description: created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseResponse'
+        '404':
+          description: journal or entry not found
+
+    get:
+      tags: [expenses]
+      summary: list expenses for an entry
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      responses:
+        '200':
+          description: expenses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExpenseResponse'
+        '404':
+          description: journal or entry not found
+
+  /journals/{journalId}/entries/{entryId}/expenses/{expenseId}:
+    patch:
+      tags: [expenses]
+      summary: update expense partially
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+        - $ref: '#/components/parameters/ExpenseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateExpenseRequest'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseResponse'
+        '404':
+          description: expense not found
+
+    delete:
+      tags: [expenses]
+      summary: delete expense
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+        - $ref: '#/components/parameters/ExpenseId'
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: expense not found
+
+  /journals/{journalId}/expenses/summary:
+    get:
+      tags: [expenses]
+      summary: simple expense summary for a journal
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+      responses:
+        '200':
+          description: summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JournalExpenseSummaryResponse'
+        '404':
+          description: journal not found
+
+#notifications per user
+  /users/{id}/notifications:
+    get:
+      tags: [notifications]
+      summary: list notifications for a user
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - name: unreadOnly
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: user not found
+
+  /users/{id}/notifications/{notificationId}/read:
+    post:
+      tags: [notifications]
+      summary: mark notification as read
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/NotificationId'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: notification not found
+
+  /users/{id}/notifications/{notificationId}:
+    delete:
+      tags: [notifications]
+      summary: delete notification
+      parameters:
+        - $ref: '#/components/parameters/UserId'
+        - $ref: '#/components/parameters/NotificationId'
+      responses:
+        '204':
+          description: deleted
+        '404':
+          description: notification not found
+
+#search
+  /search/entries:
+    get:
+      tags: [search]
+      summary: search entries (simple filters)
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: text to search in title/content
+          schema:
+            type: string
+        - name: ownerId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: journalId
+          in: query
+          required: false
+          schema:
+            type: integer
+            format: int64
+        - name: tag
+          in: query
+          required: false
+          description: tag name
+          schema:
+            type: string
+        - name: fromDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: country
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: city
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: matching entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EntryResponse'
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     UserId:
       name: id
@@ -319,198 +784,286 @@ components:
         type: integer
         format: int64
 
+    TagId:
+      name: tagId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    ExpenseId:
+      name: expenseId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+    NotificationId:
+      name: notificationId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
   schemas:
+#users/auth
     UserResponse:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        surname:
-          type: string
-        email:
-          type: string
-          format: email
+        id: { type: integer, format: int64 }
+        name: { type: string }
+        surname: { type: string }
+        email: { type: string, format: email }
       required: [id, name, surname, email]
 
     RegisterRequest:
       type: object
       properties:
-        name:
-          type: string
-          minLength: 1
-        surname:
-          type: string
-          minLength: 1
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 6
+        name: { type: string, minLength: 1 }
+        surname: { type: string, minLength: 1 }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6 }
       required: [name, surname, email, password]
 
     UpdateUserRequest:
       type: object
       properties:
-        name:
-          type: string
-          minLength: 1
-        surname:
-          type: string
-          minLength: 1
+        name: { type: string, minLength: 1 }
+        surname: { type: string, minLength: 1 }
 
     LoginRequest:
       type: object
       properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          minLength: 1
+        email: { type: string, format: email }
+        password: { type: string, minLength: 1 }
       required: [email, password]
 
     AuthResponse:
       type: object
       properties:
-        token:
-          type: string
+        token: { type: string }
         user:
           $ref: '#/components/schemas/UserResponse'
       required: [token, user]
 
+#journals
     JournalResponse:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-        ownerId:
-          type: integer
-          format: int64
-        title:
-          type: string
-        description:
-          type: string
-          nullable: true
-        startDate:
-          type: string
-          format: date
-          nullable: true
-        endDate:
-          type: string
-          format: date
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
+        id: { type: integer, format: int64 }
+        ownerId: { type: integer, format: int64 }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        startDate: { type: string, format: date, nullable: true }
+        endDate: { type: string, format: date, nullable: true }
+        createdAt: { type: string, format: date-time }
       required: [id, ownerId, title, createdAt]
 
     CreateJournalRequest:
       type: object
       properties:
-        ownerId:
-          type: integer
-          format: int64
-        title:
-          type: string
-          minLength: 1
-        description:
-          type: string
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
+        ownerId: { type: integer, format: int64 }
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
       required: [ownerId, title]
 
     UpdateJournalRequest:
       type: object
       properties:
-        title:
-          type: string
-          minLength: 1
-        description:
-          type: string
-        startDate:
-          type: string
-          format: date
-        endDate:
-          type: string
-          format: date
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
 
+#entries
     EntryResponse:
       type: object
       properties:
-        id:
-          type: integer
-          format: int64
-        journalId:
-          type: integer
-          format: int64
-        entryDate:
-          type: string
-          format: date
-        title:
-          type: string
-        content:
-          type: string
-        mood:
-          type: string
-          nullable: true
-        createdAt:
-          type: string
-          format: date-time
+        id: { type: integer, format: int64 }
+        journalId: { type: integer, format: int64 }
+        entryDate: { type: string, format: date }
+        title: { type: string }
+        content: { type: string }
+        mood: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        location:
+          $ref: '#/components/schemas/LocationResponse'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagResponse'
+        expenses:
+          type: array
+          items:
+            $ref: '#/components/schemas/ExpenseResponse'
       required: [id, journalId, entryDate, title, content, createdAt]
 
     CreateEntryRequest:
       type: object
       properties:
-        entryDate:
-          type: string
-          format: date
-        title:
-          type: string
-          minLength: 1
-        content:
-          type: string
-          minLength: 1
-        mood:
-          type: string
+        entryDate: { type: string, format: date }
+        title: { type: string, minLength: 1 }
+        content: { type: string, minLength: 1 }
+        mood: { type: string }
       required: [entryDate, title, content]
 
     UpdateEntryRequest:
       type: object
       properties:
-        entryDate:
-          type: string
-          format: date
-        title:
-          type: string
-          minLength: 1
-        content:
-          type: string
-          minLength: 1
-        mood:
-          type: string
+        entryDate: { type: string, format: date }
+        title: { type: string, minLength: 1 }
+        content: { type: string, minLength: 1 }
+        mood: { type: string }
 
+#locations
+    LocationResponse:
+      type: object
+      properties:
+        country: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        placeName: { type: string, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+
+    UpsertLocationRequest:
+      type: object
+      properties:
+        country: { type: string }
+        city: { type: string }
+        placeName: { type: string }
+        latitude: { type: number, format: double }
+        longitude: { type: number, format: double }
+
+#tags
+    TagResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        name: { type: string }
+      required: [id, name]
+
+    CreateTagRequest:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+      required: [name]
+
+    ReplaceEntryTagsRequest:
+      type: object
+      properties:
+        tagIds:
+          type: array
+          items: { type: integer, format: int64 }
+      required: [tagIds]
+
+#collaboration
+    CollaboratorRole:
+      type: string
+      enum: [VIEWER, EDITOR]
+
+    CollaboratorResponse:
+      type: object
+      properties:
+        journalId: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        role:
+          $ref: '#/components/schemas/CollaboratorRole'
+        createdAt: { type: string, format: date-time }
+      required: [journalId, userId, role, createdAt]
+
+    AddCollaboratorRequest:
+      type: object
+      properties:
+        userId: { type: integer, format: int64 }
+        role:
+          $ref: '#/components/schemas/CollaboratorRole'
+      required: [userId, role]
+
+    UpdateCollaboratorRequest:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/CollaboratorRole'
+      required: [role]
+
+#expenses
+    ExpenseCategory:
+      type: string
+      enum: [FOOD, TRANSPORT, ACCOMMODATION, ACTIVITIES, SHOPPING, OTHER]
+
+    ExpenseResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        entryId: { type: integer, format: int64 }
+        amount: { type: number, format: double }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        category:
+          $ref: '#/components/schemas/ExpenseCategory'
+        note: { type: string, nullable: true }
+        expenseDate: { type: string, format: date, nullable: true }
+        createdAt: { type: string, format: date-time }
+      required: [id, entryId, amount, currency, category, createdAt]
+
+    CreateExpenseRequest:
+      type: object
+      properties:
+        amount: { type: number, format: double }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        category:
+          $ref: '#/components/schemas/ExpenseCategory'
+        note: { type: string }
+        expenseDate: { type: string, format: date }
+      required: [amount, currency, category]
+
+    UpdateExpenseRequest:
+      type: object
+      properties:
+        amount: { type: number, format: double }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+        category:
+          $ref: '#/components/schemas/ExpenseCategory'
+        note: { type: string }
+        expenseDate: { type: string, format: date }
+
+    JournalExpenseSummaryResponse:
+      type: object
+      properties:
+        journalId: { type: integer, format: int64 }
+        totalAmount: { type: number, format: double }
+        currency: { type: string, minLength: 3, maxLength: 3 }
+      required: [journalId, totalAmount, currency]
+
+#notifications
+    NotificationResponse:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        userId: { type: integer, format: int64 }
+        type: { type: string }
+        message: { type: string }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+      required: [id, userId, type, message, isRead, createdAt]
+
+#dashboard
     UserDashboardResponse:
       type: object
       properties:
         user:
           $ref: '#/components/schemas/UserResponse'
-        journalsCount:
-          type: integer
-          format: int32
-        entriesCount:
-          type: integer
-          format: int32
-        lastEntryDate:
-          type: string
-          format: date
-          nullable: true
-      required: [user, journalsCount, entriesCount]
+        journalsCount: { type: integer, format: int32 }
+        entriesCount: { type: integer, format: int32 }
+        lastEntryDate: { type: string, format: date, nullable: true }
+        totalExpenses:
+          type: object
+          properties:
+            totalAmount: { type: number, format: double }
+            currency: { type: string, minLength: 3, maxLength: 3 }
+          required: [totalAmount, currency]
+      required: [user, journalsCount, entriesCount, totalExpenses]

@@ -2,45 +2,46 @@ package com.example.traveljournal.services.impl;
 
 import com.example.traveljournal.entities.UserEntity;
 import com.example.traveljournal.exceptions.ConflictException;
-import com.example.traveljournal.exceptions.NotFoundException;
+import com.example.traveljournal.exceptions.UnauthorizedException;
 import com.example.traveljournal.model.AuthResponse;
 import com.example.traveljournal.model.LoginRequest;
 import com.example.traveljournal.model.RegisterRequest;
 import com.example.traveljournal.model.UserResponse;
 import com.example.traveljournal.repositories.UserRepository;
+import com.example.traveljournal.security.JwtUtil;
 import com.example.traveljournal.services.AuthService;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.UUID;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
-    public AuthServiceImpl(UserRepository userRepository) {
+    public AuthServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtUtil = jwtUtil;
     }
 
     @Override
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new ConflictException("email already in use");
+            throw new ConflictException("email in use");
         }
 
         UserEntity user = new UserEntity();
         user.setName(request.getName());
         user.setSurname(request.getSurname());
         user.setEmail(request.getEmail());
-        user.setPasswordHash(hash(request.getPassword()));
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         UserEntity saved = userRepository.save(user);
 
         AuthResponse response = new AuthResponse();
-        response.setToken(generateToken());
+        response.setToken(jwtUtil.generateToken(saved.getId(), saved.getEmail()));
         response.setUser(toUserResponse(saved));
         return response;
     }
@@ -48,15 +49,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new NotFoundException("invalid credentials"));
+                .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
-        String incomingHash = hash(request.getPassword());
-        if (!incomingHash.equals(user.getPasswordHash())) {
-            throw new NotFoundException("invalid credentials");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new UnauthorizedException("invalid credentials");
         }
 
         AuthResponse response = new AuthResponse();
-        response.setToken(generateToken());
+        response.setToken(jwtUtil.generateToken(user.getId(), user.getEmail()));
         response.setUser(toUserResponse(user));
         return response;
     }
@@ -68,23 +68,5 @@ public class AuthServiceImpl implements AuthService {
         dto.setSurname(user.getSurname());
         dto.setEmail(user.getEmail());
         return dto;
-    }
-
-    private String generateToken() {
-        return UUID.randomUUID().toString();
-    }
-
-    private String hash(String raw) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] bytes = digest.digest(raw.getBytes(StandardCharsets.UTF_8));
-            StringBuilder sb = new StringBuilder(bytes.length * 2);
-            for (byte b : bytes) {
-                sb.append(String.format("%02x", b));
-            }
-            return sb.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }

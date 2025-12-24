@@ -4,6 +4,7 @@ import com.example.traveljournal.api.UsersApi;
 import com.example.traveljournal.model.UpdateUserRequest;
 import com.example.traveljournal.model.UserResponse;
 import com.example.traveljournal.services.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -22,7 +23,7 @@ public class UsersController implements UsersApi {
     }
 
     @Override
-    public ResponseEntity<UserResponse> usersIdPatch(Long id, UpdateUserRequest updateUserRequest) {
+    public ResponseEntity<UserResponse> usersIdPatch(Long id, @Valid UpdateUserRequest updateUserRequest) {
         return ResponseEntity.ok(userService.updateUser(id, updateUserRequest));
     }
 }
