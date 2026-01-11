@@ -169,6 +169,9 @@
                                 <useTags>true</useTags>
                                 <skipDefaultInterface>true</skipDefaultInterface>
                                 <useJakartaEe>true</useJakartaEe>
+                                <openApiNullable>false</openApiNullable>
+                                <useOptional>false</useOptional>
+                                <dateLibrary>java8-localdatetime</dateLibrary>
                             </configOptions>
                         </configuration>
                     </execution>
