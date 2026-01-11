@@ -49,10 +49,10 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         UserEntity user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new UnauthorizedException("invalid credentials, email not registered"));
+                .orElseThrow(() -> new UnauthorizedException("invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new UnauthorizedException("invalid credentials, password is not correct");
+            throw new UnauthorizedException("invalid credentials");
         }
 
         AuthResponse response = new AuthResponse();
