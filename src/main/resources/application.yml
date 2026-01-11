@@ -11,11 +11,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
-server:
-  servlet:
-    context-path: /travel-journal
-
 app:
   jwt:
-    secret: "longrandomstringblablablaaiistakingoverblablablablablablablablablabla"
+    secret: "imiplacfoartefoartefoartemultpejouriledacaasputealeascumparapetoate"
     expiration-minutes: 120

@@ -2,7 +2,7 @@ package com.example.traveljournal.services.impl;
 
 import com.example.traveljournal.entities.UserEntity;
 import com.example.traveljournal.exceptions.NotFoundException;
-import com.example.traveljournal.exceptions.ForbiddenException;
+import com.example.traveljournal.exceptions.UnauthorizedException;
 import com.example.traveljournal.model.UpdateUserRequest;
 import com.example.traveljournal.model.UserResponse;
 import com.example.traveljournal.repositories.UserRepository;
@@ -39,7 +39,7 @@ public class UserServiceImpl implements UserService {
     private void ensureSelf(Long requestedUserId) {
         Long current = currentUserId();
         if (current == null || !current.equals(requestedUserId)) {
-            throw new ForbiddenException("forbidden");
+            throw new UnauthorizedException("forbidden");
         }
     }
 
