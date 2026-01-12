@@ -100,6 +100,7 @@ paths:
     get:
       tags: [users]
       summary: get user by id
+      operationId: usersIdGet
       parameters:
         - $ref: '#/components/parameters/UserId'
       responses:
@@ -115,6 +116,7 @@ paths:
     patch:
       tags: [users]
       summary: update user partially
+      operationId: usersIdPatch
       parameters:
         - $ref: '#/components/parameters/UserId'
       requestBody:
@@ -487,6 +489,28 @@ paths:
         '404':
           description: journal or entry not found
 
+    patch:
+      tags: [ locations ]
+      summary: update location partially
+      operationId: journalsJournalIdEntriesEntryIdLocationPatch
+      parameters:
+        - $ref: '#/components/parameters/JournalId'
+        - $ref: '#/components/parameters/EntryId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchLocationRequest'
+      responses:
+        '200':
+          description: updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationResponse'
+        '404':
+          description: journal or entry not found
 #tags
   /tags:
     post:
@@ -1058,7 +1082,16 @@ components:
         latitude: { type: number, format: double }
         longitude: { type: number, format: double }
 
-#tags
+    PatchLocationRequest:
+      type: object
+      properties:
+        country: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        placeName: { type: string, nullable: true }
+        latitude: { type: number, format: double, nullable: true }
+        longitude: { type: number, format: double, nullable: true }
+
+    #tags
     TagResponse:
       type: object
       properties:

@@ -26,7 +26,7 @@ public class EntryEntity {
 
     private String mood;
 
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     public EntryEntity() {}
