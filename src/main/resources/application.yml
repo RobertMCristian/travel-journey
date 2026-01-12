@@ -2,7 +2,7 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/travel_journal
     username: postgres
-    password: 1234
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: validate
@@ -11,9 +11,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   flyway:
     enabled: true
-server:
-  servlet:
-    context-path: /travel-journal
 
 app:
   jwt:
